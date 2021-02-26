@@ -1,0 +1,285 @@
+import time
+import argparse
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.common.action_chains import ActionChains 
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
+import requests
+from requests_html import HTMLSession
+import datetime
+import os
+import pandas as pd
+import mysql.connector
+small_wait = 5
+big_wait = 5
+WINDOW_SIZE = "1920,1080"
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
+driver_path = os.path.join(os.getcwd(), 'chromedriver')
+
+def find_https(x):
+    """
+    The function extract the https link from a given string
+    """
+    i = 0
+    start = None
+    end = None
+    for i in range(0,len(x)):
+        if i < (len(x) - 4):
+            string = x[i:i+4]
+            if string == "http":
+                start = i
+        if start != None and x[i] == '"':
+            end = i
+    return x[start:end]
+def find_zip_code(x):
+    """
+    The function extract the zip code <ddddd> from a given string 
+    """
+    i = 0
+    j = 4
+    for i in range(1,len(x)-6):
+        string = x[i-1:i+6]
+        cond = (string[1:-1].isnumeric(), not string[0].isnumeric(), not string[-1].isnumeric())
+        if all(cond):
+            return x[i:i+5]
+def get_urls(search_key = "Roma, Roma", select_key = 0):
+    """
+    The function takes the urls from the search page of the website
+    """
+    print(driver_path)
+    driver = webdriver.Chrome(driver_path, options=chrome_options)  # Optional argument, if not specified will search path.
+    driver.get('https://www.astegiudiziarie.it/Immobili/Risultati')
+    time.sleep(small_wait)
+    driver.find_element_by_id('filter-category').click()
+    time.sleep(small_wait)
+    driver.find_element_by_xpath("//ul[@id='categories_filter']/li[@data-option-id='1']").click()
+    time.sleep(small_wait)
+    driver.find_elements_by_xpath("//div[@class='clefted']/a")[1].click()
+    time.sleep(small_wait)
+    while True:
+        try:
+            location = driver.find_element_by_xpath("//span[@id='location-span']/input[@id='location']")
+            location.click()
+            time.sleep(small_wait)
+            location.send_keys(search_key)
+            time.sleep(small_wait)
+            locatoin_text = driver.find_elements_by_xpath("//ul[@class='ui-menu ui-widget ui-widget-content ui-autocomplete highlight ui-front']/li")[select_key].text
+            loc = driver.find_elements_by_xpath("//ul[@class='ui-menu ui-widget ui-widget-content ui-autocomplete highlight ui-front']/li")[select_key].click()
+            print("The location is:", locatoin_text)
+            break
+        except:
+            pass
+
+    n_items = 0
+    while True:
+        time.sleep(small_wait)
+        items = driver.find_elements_by_class_name("listing-item")
+        hover = items[-2]
+        action = webdriver.common.action_chains.ActionChains(driver)
+        action.move_to_element(hover).perform()
+        time.sleep(big_wait)
+        if n_items < len(items):
+            n_items = len(items)
+        else:
+            break
+
+    urls = driver.find_elements_by_xpath("//div[@class='listing-item']/a")
+    urls = [url.get_attribute('href') for url in urls]
+    urls = set(urls)
+    db = mysql.connector.connect(
+                user='root', database='astegiudiziarie',
+                host='localhost', password='9903', port=3306)
+    db.autocommit = True
+    cur = db.cursor()
+    cur.execute("select url from urls where region='{}'".format(locatoin_text))
+    pre_urls = [u[0] for u in cur.fetchall()]
+    for url in urls:
+        print(url)
+        if url not in pre_urls:
+            cur.execute('insert into urls(region, url, date) values("{}","{}","{}")'.format(locatoin_text, url, datetime.date.today()))
+            print('New url added')
+        else:
+            print('The url exists')
+    cur.close()
+    db.close()
+    driver.get_screenshot_as_file("capture.png")
+    driver.close()
+    driver.quit()
+
+
+def get_data():
+    driver = webdriver.Chrome(driver_path, chrome_options=chrome_options)  # Optional argument, if not specified will search path.
+    urls = [url[-1][0] for url in pd.read_csv('urls.csv', header = None).iterrows()]
+
+    Data = []
+    for u in urls:
+        data = {}
+        data['url'] = u
+        try:
+            print(u)
+            driver.get(u);
+            time.sleep(small_wait)
+            time.sleep(small_wait)
+            try:
+                driver.find_element_by_xpath("div[@class='col-md-12 text-center']")
+                data['page_status'] = 'error'
+                continue
+            except:
+                data['page_status'] = 'OK'
+                try:
+                    driver.find_element_by_xpath("//ul[@class='nav nav-tabs']/li/div/a[@href='#pictures']").click()
+                    time.sleep(small_wait)
+                    images = driver.find_elements_by_xpath("//div[@class='property-slider-pictures-nav slick-initialized slick-slider']/div[@aria-live='polite']/div[@class='slick-track']/div[@class='item slide-preview slick-slide slick-cloned']/img")
+                    for image in images:
+                        img_url = image.get_attribute("src")
+                        directory = "media/" + img_url.split('/')[-1] + "/FOTO"
+                        data['directory'] = img_url.split('/')[-1]
+                        file_name = img_url.split('/')[-2]
+                        if not os.path.exists(directory):
+                            os.makedirs(directory)
+                        response = requests.get(img_url)
+                        file = open("{}/{}".format(directory, file_name), "wb")
+                        file.write(response.content)
+                        file.close()
+                except:
+                    pass
+
+                time.sleep(small_wait)
+                try:
+                    driver.find_element_by_xpath("//ul[@class='nav nav-tabs']/li/div/a[@href='#plants']").click()
+                    images = driver.find_elements_by_xpath("//div[@class='property-slider-plants-nav slick-initialized slick-slider']/div[@aria-live='polite']/div[@class='slick-track']/div/img")
+                    for image in images:
+                        img_url = image.get_attribute("src")
+                        directory = "media/" + img_url.split('/')[-1] + "/PLANIMETRIA"
+                        file_name = img_url.split('/')[-2]
+                        if not os.path.exists(directory):
+                            os.makedirs(directory)
+                        response = requests.get(img_url)
+                        file = open("{}/{}".format(directory, file_name), "wb")
+                        file.write(response.content)
+                        file.close()
+                except:
+                    pass
+                time.sleep(small_wait)
+
+
+                try:
+                    pdfs = [div.find_element_by_xpath('..') for div in driver.find_elements_by_xpath("//div[@class='widget hidden-sm hidden-xs']/h3") if div.text == 'Allegati']
+                    for a in pdfs[0].find_elements_by_tag_name('a'):
+                        href = a.get_attribute('href')            
+                        directory = "media/" + href.split('/')[-1] + "/pdf"
+                        file_name = href.split('/')[-2]
+                        print(directory)
+                        print(file_name)
+                        if not os.path.exists(directory):
+                            os.makedirs(directory)
+                        response = requests.get(href)
+                        file = open("{}/{}".format(directory, file_name), "wb")
+                        file.write(response.content)
+                        file.close()
+
+                except:
+                    pass
+                try:
+                    print(driver.find_element_by_xpath("//div[@class='title-bar-auction-left']").text)
+                    data['cod'] = driver.find_element_by_xpath("//div[@class='title-bar-auction-left']").text
+                except:
+                    print("there is no COD.")
+                    data['cod'] = None
+                try:
+                    print(driver.find_element_by_xpath("//div[@class='title-bar-auction-right']").text)
+                    data['status'] = driver.find_element_by_xpath("//div[@class='title-bar-auction-right']").text
+                except:
+                    print("there is no status")
+                    data['status'] = None
+                try:
+                    driver.find_element_by_xpath("//div[@class='property-title']/h2/span").text
+                    print(driver.find_element_by_xpath("//div[@class='property-title']/h2").text.replace(" " + driver.find_element_by_xpath("//div[@class='property-title']/h2/span").text,""))
+                    print(driver.find_element_by_xpath("//div[@class='property-title']/h2/span").text)
+                    data['last_status'] = driver.find_element_by_xpath("//div[@class='property-title']/h2").text.replace(" " + driver.find_element_by_xpath("//div[@class='property-title']/h2/span").text,"")
+                    data['last_update'] = driver.find_element_by_xpath("//div[@class='property-title']/h2/span").text
+                except:
+                    try:
+                        print(driver.find_element_by_xpath("//div[@class='property-title']/h2").text)
+                        data['last_status'] = driver.find_element_by_xpath("//div[@class='property-title']/h2").text
+                        print("-")
+                        data['last_update'] = None
+                    except:
+                        print("-")
+                        data['last_status'] = None
+                        data['last_update'] = None
+                        print("-")
+                E = driver.find_elements_by_xpath("//div[@class='property-description']/div[@class='row legal-row']")
+                time.sleep(2)
+                for e in E:
+                    table = e.find_element_by_xpath("div[@class='col-md-12 legal-header']").text
+                    print(table,":")
+                    if table == 'Dati relativi al lotto':
+                        x = e.find_element_by_xpath("div[@class='col-md-12 legal-row-desc']/p").text
+                        print(x)
+                        data[table + '_' + 'description'] = x
+                    if table == 'Dati relativi ai beni':
+                        y = e.find_element_by_xpath("div[@class='col-md-12 legal-row-desc']/h4").text
+                        x = e.find_element_by_xpath("div[@class='col-md-12 legal-row-desc']/p").text
+                        print(y)
+                        data[table + '_' + 'tipo'] = y
+                        data[table + '_' + 'description'] = x
+                        print(x)
+                    D = e.find_elements_by_xpath("div[@class='col-md-12 legal-row-desc']/div[@class='row legal-row-detail']")
+                    for d in D:
+                        for i in d.find_elements_by_xpath('div'):
+                            if i.get_attribute('class') != 'clearfix nascondi':
+                                y,z = i.find_elements_by_xpath('div')
+                                print(y.text,":",z.text)
+                                data[table + '_' + y.text] = z.text
+                map_url = find_https(driver.find_element_by_xpath("//div[@id='propertyMap-container']/a[@class='popup-gmaps street-view-btn nascondi']").get_attribute('onClick'))
+                driver.get(map_url)
+                time.sleep(5)
+                url = driver.current_url
+                try:
+                    session = HTMLSession()
+                    response = session.get(url)
+                    time.sleep(5)
+                    lat, log = url[-50:].split("!3d")[1].split("!4d")
+                    v = lat + ',' + log
+                    x = response.text[response.text.find(v)-100:response.text.find(v)]
+                    z = find_zip_code(x)
+                    print(z)
+                    data['zip'] = z
+                    session.close()
+                except:
+                    print('ridam')
+        except:
+            pass
+        Data.append(data)
+    #     break
+    driver.close()
+    driver.quit()
+    df = pd.DataFrame(Data + Data)
+    df.to_csv('data.csv', index=False)
+
+if __name__ == "__main__":
+    #  os.system('source /env/bin/activate')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m','--mode', action='store', dest='mode', type=str, required=True)
+    parser.add_argument('-s','--search', action='store', dest='search', type=str, required=False)
+    parser.add_argument('-k','--key', action='store', dest='key', type=int, required=False)
+    args = parser.parse_args()
+
+    
+    if args.mode == "url":
+        get_urls(search_key=args.search, select_key=args.key)
+    elif args.mode == 'data':
+        try:
+            args.driver != None
+            get_data(driver_path=args.driver)
+        except:
+            get_data()
+    else:
+        print('try again, wrong arguments entered') 
