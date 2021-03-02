@@ -113,24 +113,27 @@ def get_urls(search_key = "Roma, Roma", select_key = 0):
     driver.close()
     driver.quit()
 
-def get_list_to_scrap():
-    db = mysql.connector.connect(
-                user='root', database='astegiudiziarie',
-                host='localhost', password='9903', port=3306)
-    db.autocommit = True
-    cur = db.cursor()
-    cur.execute("select url, region from urls")
-    data_urls_regions = [(u[0], u[1]) for u in cur.fetchall()]
-    urls = [u[0] for u in data_urls_regions]
-    regions = [u[1] for u in data_urls_regions]
-def get_data(urls, regions):
 
+def get_data(region):
+    print('Region: ', region)
     driver = webdriver.Chrome(driver_path, chrome_options=chrome_options)  # Optional argument, if not specified will search path.
     db = mysql.connector.connect(
                 user='root', database='astegiudiziarie',
                 host='localhost', password='9903', port=3306)
     db.autocommit = True
     cur = db.cursor()
+    sql = """SELECT url, region from (SELECT l.url, r.region from 
+             (SELECT url from urls WHERE urls.url not in (SELECT url from data)
+             union
+             SELECT d.url from (SELECT url, max(get_date), Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA 
+             from data where Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA < now() and last_update not like "*AGGIUDICATA*" group by url) as d) l
+             left join urls r on l.url=r.url) as m where m.region = "{}";  
+    """.format(region)
+    cur.execute(sql)
+    urls_regions = cur.fetchall()
+    urls = [url[0] for url in urls_regions]
+    regions = [url[1] for url in urls_regions]
+    print(len(urls), "urls are going to be scrapped")
     cur.execute("select * from data")
     columns = cur.column_names
     columns = list(columns)
@@ -345,13 +348,31 @@ def get_data(urls, regions):
     driver.close()
     driver.quit()
 
+def make_report():
+    db = mysql.connector.connect(
+                user='root', database='astegiudiziarie',
+                host='localhost', password='9903', port=3306)
+    db.autocommit = True
+    cur = db.cursor()
+    cur.execute("select * from urls;")
+    columns = cur.column_names
+    pd.DataFrame(cur.fetchall(), columns=columns).to_csv('urls.csv', index=False)
+    cur.execute("select * from data;")
+    columns = cur.column_names
+    pd.DataFrame(cur.fetchall(), columns=columns).to_csv('data.csv', index=False)
+    db.close()
 
 import tkinter as tk
 def run_get_urls():
     get_urls(search_key=e1.get(), select_key=int(e2.get()))
 
 def run_get_data():
-    get_data()
+    get_data(region.get())
+
+
+
+
+
 master = tk.Tk()
 master.title("Agha Sadegh")
 
@@ -379,16 +400,29 @@ l1.grid(row=row, column=0)
 
 row = 2
 tk.Label(master, 
-         text="Date").grid(row=row, column=0)
-t1 = tk.Entry(master)
-t1.grid(row=row, column=1)
-# tk.Label(master, 
-#          text="Item to Select").grid(row=row, column=2)
-# t2 = tk.Entry(master)
-# t2.grid(row=row, column=3)
+         text="Region").grid(row=row, column=0)
+
+
+db = mysql.connector.connect(
+                user='root', database='astegiudiziarie',
+                host='localhost', password='9903', port=3306)
+db.autocommit = True
+cur = db.cursor()
+cur.execute("select distinct(region) from urls;")
+regions = cur.fetchall()
+db.close()
+regions = [region[0] for region in regions]
+
+region = tk.StringVar(master)
+region.set("") # default value
+
+w = tk.OptionMenu(master, region, *regions).grid(row=row, column=1)
+# t1 = tk.Entry(master)
+# t1.grid(row=row, column=1)
+
 tk.Button(master, 
           text='GET DATA', 
-          command=run_get_urls).grid(row=row, 
+          command=run_get_data).grid(row=row, 
                                     column=4, 
                                     sticky=tk.W, 
                                     pady=4)
@@ -396,6 +430,11 @@ row = 3
 tk.Button(master, 
           text='Exit', command=master.quit).grid(row=row, 
                                                        column=0, 
+                                                       sticky=tk.W, 
+                                                       pady=4)
+tk.Button(master, 
+          text='Report', command=make_report).grid(row=row, 
+                                                       column=2, 
                                                        sticky=tk.W, 
                                                        pady=4)
 tk.mainloop()
