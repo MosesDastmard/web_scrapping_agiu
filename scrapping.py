@@ -95,7 +95,7 @@ def get_urls(search_key = "Roma, Roma", select_key = 0):
     urls = set(urls)
     db = mysql.connector.connect(
                 user='root', database='astegiudiziarie',
-                host='localhost', password='9903', port=3306)
+                host='localhost', password='Maral1398', port=3306)
     db.autocommit = True
     cur = db.cursor()
     cur.execute("select url from urls where region='{}'".format(locatoin_text))
@@ -119,14 +119,14 @@ def get_data(region):
     driver = webdriver.Chrome(driver_path, chrome_options=chrome_options)  # Optional argument, if not specified will search path.
     db = mysql.connector.connect(
                 user='root', database='astegiudiziarie',
-                host='localhost', password='9903', port=3306)
+                host='localhost', password='Maral1398', port=3306)
     db.autocommit = True
     cur = db.cursor()
     sql = """SELECT url, region from (SELECT l.url, r.region from 
              (SELECT url from urls WHERE urls.url not in (SELECT url from data)
              union
              SELECT d.url from (SELECT url, max(get_date), Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA 
-             from data where Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA < now() and last_update not like "*AGGIUDICATA*" group by url) as d) l
+             from data where (Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA < now() or Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA < now()) and last_update not like "%AGGIUDICATA%" group by url) as d) l
              left join urls r on l.url=r.url) as m where m.region = "{}";  
     """.format(region)
     cur.execute(sql)
@@ -158,7 +158,9 @@ def get_data(region):
                     time.sleep(2*small_wait)
                     images_1 = driver.find_elements_by_xpath("//div[@class='property-slider-pictures-nav slick-initialized slick-slider']/div[@aria-live='polite']/div[@class='slick-track']/div[@class='item slide-preview slick-slide slick-cloned']/img")
                     images_2 = driver.find_elements_by_xpath("//div[@class='property-slider-pictures-nav slick-initialized slick-slider']/div[@aria-live='polite']/div[@class='slick-track']/div[@class='item slide-preview slick-slide']/img")
-                    images = images_1 + images_2
+                    images_3 = driver.find_elements_by_xpath("//div[@class='property-slider-pictures-nav slick-initialized slick-slider']/div[@aria-live='polite']/div[@class='slick-track']/div[@class='item slide-preview slick-slide slick-current slick-active']/img")
+   
+                    images = images_1 + images_2 + images_3
                     for image in images:
                         img_url = image.get_attribute("src")
                         directory = "media/{}/".format(r) + img_url.split('/')[-1] + "/FOTO"
@@ -351,7 +353,7 @@ def get_data(region):
 def make_report():
     db = mysql.connector.connect(
                 user='root', database='astegiudiziarie',
-                host='localhost', password='9903', port=3306)
+                host='localhost', password='Maral1398', port=3306)
     db.autocommit = True
     cur = db.cursor()
     cur.execute("select * from urls;")
@@ -374,7 +376,7 @@ def run_get_data():
 
 
 master = tk.Tk()
-master.title("Agha Sadegh")
+master.title("SALUNA")
 
 row = 0
 tk.Label(master, 
@@ -405,7 +407,7 @@ tk.Label(master,
 
 db = mysql.connector.connect(
                 user='root', database='astegiudiziarie',
-                host='localhost', password='9903', port=3306)
+                host='localhost', password='Maral1398', port=3306)
 db.autocommit = True
 cur = db.cursor()
 cur.execute("select distinct(region) from urls;")
