@@ -472,8 +472,9 @@ regions = [region[0] for region in regions]
 
 region = tk.StringVar(master)
 region.set("") # default value
+if len(regions) > 0:
+    w = tk.OptionMenu(master, region, *regions).grid(row=row, column=1)
 
-w = tk.OptionMenu(master, region, *regions).grid(row=row, column=1)
 tk.Button(master, 
           text='GET DATA', 
           command=run_get_data).grid(row=row, 
