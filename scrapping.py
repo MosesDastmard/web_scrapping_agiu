@@ -393,7 +393,11 @@ def get_data(region):
                         x = value.split()
                         d = x[0].split('/')
                         d.reverse()
-                        value = "-".join(d) + " " + x[-1]
+                        if len(x) == 3:    
+                            value = "-".join(d) + " " + x[-1]
+                        else:
+                            value = "-".join(d)
+
                         values.append('''"{}"'''.format(value))
                     elif cl in ['Dati_relativi_alla_Vendita_PREZZO_BASE', 'Dati_relativi_alla_Vendita_OFFERTA_MINIMA', 'Dati_relativi_alla_Vendita_RIALZO_MINIMO_IN_CASO_DI_GARA']:
                         cols.append(cl)

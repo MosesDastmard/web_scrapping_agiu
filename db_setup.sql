@@ -29,7 +29,7 @@ CREATE TABLE data (
   Dati_relativi_ai_beni_CERTIFICAZIONE_ENERGETICA TEXT DEFAULT NULL,
   Dati_relativi_ai_beni_DATI_CATASTALI TEXT DEFAULT NULL,
   Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA datetime DEFAULT NULL,
-  Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA TEXT DEFAULT NULL,
+  Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA datetime DEFAULT NULL,
   Dati_relativi_alla_Vendita_TIPO_VENDITA TEXT DEFAULT NULL,
   Dati_relativi_alla_Vendita_MODALITA_VENDITA TEXT DEFAULT NULL,
   Dati_relativi_alla_Vendita_LUOGO_DELLA_VENDITA TEXT DEFAULT NULL,
