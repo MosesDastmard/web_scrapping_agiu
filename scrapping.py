@@ -420,7 +420,7 @@ def get_data(region):
                         values.append(str(value))
                     else:
                         cols.append(cl)
-                        values.append(value)
+                        values.append('''"{}"'''.format(value))
                         
 
         cols = ",".join(cols)
