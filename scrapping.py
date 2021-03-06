@@ -415,12 +415,7 @@ def get_data(region):
                     elif cl == "zip":
                         cols.append(cl)
                         values.append(value)
-                    else:
-                        if cl not in columns:
-                            cur.execute("ALTER TABLE `astegiudiziarie`.`data` ADD COLUMN `{}` VARCHAR(200) NULL;".format(cl))
-                            columns.append(cl)
-                        cols.append(cl)
-                        values.append('''"{}"'''.format(value.replace("'", "").replace('"', "")))
+                        
 
         cols = ",".join(cols)
         values = ",".join(values)
