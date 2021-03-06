@@ -347,7 +347,7 @@ def get_data(region):
         cols = []
         values = []
         for col, value in data.items():
-            if col in COLUMNS:
+            if col.replace(" ", "_") in COLUMNS:
                 if value not in ["-", "", " ", None]:
                     cl = col.replace(" ", "_")
                     print(cl, ":", value)       
@@ -472,6 +472,7 @@ regions = [region[0] for region in regions]
 
 region = tk.StringVar(master)
 region.set("") # default value
+
 if len(regions) > 0:
     w = tk.OptionMenu(master, region, *regions).grid(row=row, column=1)
 
