@@ -415,6 +415,9 @@ def get_data(region):
                     elif cl == "zip":
                         cols.append(cl)
                         values.append(value)
+                    elif cl == "Numero_vendite":
+                        cols.append(cl)
+                        values.append(str(value))
                     else:
                         cols.append(cl)
                         values.append(value)
