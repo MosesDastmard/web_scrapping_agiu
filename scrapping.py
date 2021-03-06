@@ -183,11 +183,14 @@ def get_data(region):
              (SELECT url from urls WHERE urls.url not in (SELECT url from data)
              union
              SELECT d.url from (SELECT url, max(get_date), Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA 
-             from data where (Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA < now() or Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA < now()) and last_update not like "%AGGIUDICATA%" group by url) as d) l
+             from data where (Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA < now() or Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA < now()) and last_update not like "%AGGIUDICATA%" and get_date < CURDATE() group by url) as d) l
              left join urls r on l.url=r.url) as m where m.region = "{}";  
     """.format(region)
     cur.execute(sql)
     urls_regions = cur.fetchall()
+
+
+
     urls = [url[0] for url in urls_regions]
     regions = [url[1] for url in urls_regions]
     print(len(urls), "urls are going to be scrapped")
