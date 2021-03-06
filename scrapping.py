@@ -70,6 +70,7 @@ COLUMNS = [ 'url',
             'Numero_dei_Creditori_Intervenuti',
             'Numero_dei_Creditori_Non_Intervenuti',
             'Numero_dei_Creditori',
+            'Numero_vendite',
             'Dettaglio_procedura_e_contatti_DELEGATO_ALLA_VENDITA',
             'Dettaglio_procedura_e_contatti_RECAPITI',
             'Dettaglio_procedura_e_contatti_EMAIL',
@@ -325,6 +326,21 @@ def get_data(region):
                                 print(y.text,":",z.text)
                                 data[table + '_' + y.text] = z.text
                 map_url = find_https(driver.find_element_by_xpath("//div[@id='propertyMap-container']/a[@class='popup-gmaps street-view-btn nascondi']").get_attribute('onClick'))
+                try:
+                    chart = driver.find_elements_by_xpath("//li[@class='active']/a[@href='#linechart-container']")
+                    chart_table = driver.find_elements_by_xpath("//a[@href='#table-container']")
+                    if len(chart) > 0:
+                        action = webdriver.common.action_chains.ActionChains(driver)
+                        action.move_to_element(chart[0]).perform()
+                        driver.execute_script("window.scrollBy(0, 800);")
+                        driver.get_screenshot_as_file("media/{}/{}/FOTO/Andamento.png".format(r, u.split('-')[-1]))
+                        Numero_vendite = len(driver.find_elements_by_xpath("//div[@class='table-responsive']/table/tbody/tr"))
+                        data['Numero_vendite'] = Numero_vendite
+                except:
+                    pass
+
+
+
                 driver.get(map_url)
                 time.sleep(5)
                 url = driver.current_url
