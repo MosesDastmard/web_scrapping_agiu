@@ -415,6 +415,9 @@ def get_data(region):
                     elif cl == "zip":
                         cols.append(cl)
                         values.append(value)
+                    else:
+                        cols.append(cl)
+                        values.append(value)
                         
 
         cols = ",".join(cols)
