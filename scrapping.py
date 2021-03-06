@@ -22,6 +22,63 @@ chrome_options.add_argument("--headless")
 chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
 driver_path = os.path.join(os.getcwd(), 'chromedriver')
 
+COLUMNS = [ 'url',
+            'get_date',
+            'page_status',
+            'directory',
+            'cod',
+            'status',
+            'last_status',
+            'last_update',
+            'Dati_relativi_al_lotto_description',
+            'Dati_relativi_al_lotto_INDIRIZZO',
+            'Dati_relativi_al_lotto_LOTTO',
+            'Dati_relativi_al_lotto_NUMERO_BENI',
+            'Dati_relativi_al_lotto_GENERE',
+            'Dati_relativi_al_lotto_CATEGORIA',
+            'Dati_relativi_al_lotto_VALORE_DI_STIMA',
+            'Dati_relativi_ai_beni_tipo',
+            'Dati_relativi_ai_beni_description',
+            'Dati_relativi_ai_beni_INDIRIZZO',
+            'Dati_relativi_ai_beni_PIANO',
+            'Dati_relativi_ai_beni_DISPONIBILITÀ',
+            'Dati_relativi_ai_beni_VANI',
+            'Dati_relativi_ai_beni_METRI_QUADRI',
+            'Dati_relativi_ai_beni_METRI_QUADRI_MIN',
+            'Dati_relativi_ai_beni_METRI_QUADRI_MAX',
+            'Dati_relativi_ai_beni_CERTIFICAZIONE_ENERGETICA',
+            'Dati_relativi_ai_beni_DATI_CATASTALI',
+            'Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA',
+            'Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA',
+            'Dati_relativi_alla_Vendita_TIPO_VENDITA',
+            'Dati_relativi_alla_Vendita_MODALITA_VENDITA',
+            'Dati_relativi_alla_Vendita_LUOGO_DELLA_VENDITA',
+            'Dati_relativi_alla_Vendita_LUOGO_PRESENTAZIONE_OFFERTA',
+            'Dati_relativi_alla_Vendita_TERMINE_PRESENTAZIONE_OFFERTE',
+            'Dati_relativi_alla_Vendita_PREZZO_BASE',
+            'Dati_relativi_alla_Vendita_OFFERTA_MINIMA',
+            'Dati_relativi_alla_Vendita_RIALZO_MINIMO_IN_CASO_DI_GARA',
+            'Dati_relativi_alla_Vendita_DEPOSITO_CAUZIONALE',
+            'Dati_relativi_alla_Vendita_DEPOSITO_IN_CONTO_SPESE',
+            'Dati_relativi_alla_Vendita_DATA_INIZIO_GARA',
+            'Dati_relativi_alla_Vendita_DATA_FINE_GARA',
+            'Dettaglio_procedura_e_contatti_TRIBUNALE',
+            'Dettaglio_procedura_e_contatti_TIPO_PROCEDURA',
+            'Dettaglio_procedura_e_contatti_RUOLO',
+            'Dettaglio_procedura_e_contatti_RUOLO_1',
+            'Dettaglio_procedura_e_contatti_RUOLO_2',
+            'Numero_dei_Creditori',
+            'Dettaglio_procedura_e_contatti_DELEGATO_ALLA_VENDITA',
+            'Dettaglio_procedura_e_contatti_RECAPITI',
+            'Dettaglio_procedura_e_contatti_EMAIL',
+            'Dettaglio_procedura_e_contatti_CUSTODE_GIUDIZIARIO',
+            'Dettaglio_procedura_e_contatti_GIUDICE',
+            'Dettaglio_procedura_e_contatti_IVG',
+            'zip'
+]
+
+
+
 def find_https(x):
     """
     The function extract the https link from a given string
@@ -285,63 +342,64 @@ def get_data(region):
         cols = []
         values = []
         for col, value in data.items():
-            if value not in ["-", "", " ", None]:
-                cl = col.replace(" ", "_")
-                print(cl, ":", value)       
-                if cl == "url":
-                    cols.append(cl)
-                    values.append('''"{}"'''.format(value))
-                elif cl == "Dati_relativi_ai_beni_METRI_QUADRI":
-                    cols.append(cl)
-                    values.append('''"{}"'''.format(value))
-                    try:
-                        value = float(value.replace(',', '.'))
-                        cols.append(cl + "_MIN")
-                        values.append(str(value))
-                    except:
+            if col in COLUMNS:
+                if value not in ["-", "", " ", None]:
+                    cl = col.replace(" ", "_")
+                    print(cl, ":", value)       
+                    if cl == "url":
+                        cols.append(cl)
+                        values.append('''"{}"'''.format(value))
+                    elif cl == "Dati_relativi_ai_beni_METRI_QUADRI":
+                        cols.append(cl)
+                        values.append('''"{}"'''.format(value))
                         try:
-                            MIN, MAX = value.split("-")
-                            MIN = float(MIN)
-                            MAX = float(MAX)
-                            values.append(str(MIN))
-                            values.append(str(MAX))
+                            value = float(value.replace(',', '.'))
                             cols.append(cl + "_MIN")
-                            cols.append(cl + "_MAX")
+                            values.append(str(value))
+                        except:
+                            try:
+                                MIN, MAX = value.split("-")
+                                MIN = float(MIN)
+                                MAX = float(MAX)
+                                values.append(str(MIN))
+                                values.append(str(MAX))
+                                cols.append(cl + "_MIN")
+                                cols.append(cl + "_MAX")
+                            except:
+                                pass
+                    elif cl in ["Dati_relativi_alla_Vendita_TERMINE_PRESENTAZIONE_OFFERTE", "Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA", "Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA"]:
+                        cols.append(cl)
+                        x = value.split()
+                        d = x[0].split('/')
+                        d.reverse()
+                        value = "-".join(d) + " " + x[-1]
+                        values.append('''"{}"'''.format(value))
+                    elif cl in ['Dati_relativi_alla_Vendita_PREZZO_BASE', 'Dati_relativi_alla_Vendita_OFFERTA_MINIMA', 'Dati_relativi_alla_Vendita_RIALZO_MINIMO_IN_CASO_DI_GARA']:
+                        cols.append(cl)
+                        value = float(value.replace("€ ", "").replace(".","").replace(",", "."))
+                        values.append(str(value))
+                    elif cl == "Dettaglio_procedura_e_contatti_RUOLO":
+                        cols.append(cl)
+                        values.append('''"{}"'''.format(value))
+                        try:
+                            r1,r2 = value.split("/")
+                            r1 = int(r1)
+                            r2 = int(r2)
+                            values.append(str(r1))
+                            values.append(str(r2))
+                            cols.append(cl + "_1")
+                            cols.append(cl + "_2")
                         except:
                             pass
-                elif cl in ["Dati_relativi_alla_Vendita_TERMINE_PRESENTAZIONE_OFFERTE", "Dati_relativi_alla_Vendita_DATA_E_ORA_UDIENZA", "Dati_relativi_alla_Vendita_DATA_E_ORA_VENDITA"]:
-                    cols.append(cl)
-                    x = value.split()
-                    d = x[0].split('/')
-                    d.reverse()
-                    value = "-".join(d) + " " + x[-1]
-                    values.append('''"{}"'''.format(value))
-                elif cl in ['Dati_relativi_alla_Vendita_PREZZO_BASE', 'Dati_relativi_alla_Vendita_OFFERTA_MINIMA', 'Dati_relativi_alla_Vendita_RIALZO_MINIMO_IN_CASO_DI_GARA']:
-                    cols.append(cl)
-                    value = float(value.replace("€ ", "").replace(".","").replace(",", "."))
-                    values.append(str(value))
-                elif cl == "Dettaglio_procedura_e_contatti_RUOLO":
-                    cols.append(cl)
-                    values.append('''"{}"'''.format(value))
-                    try:
-                        r1,r2 = value.split("/")
-                        r1 = int(r1)
-                        r2 = int(r2)
-                        values.append(str(r1))
-                        values.append(str(r2))
-                        cols.append(cl + "_1")
-                        cols.append(cl + "_2")
-                    except:
-                        pass
-                elif cl == "zip":
-                    cols.append(cl)
-                    values.append(value)
-                else:
-                    if cl not in columns:
-                        cur.execute("ALTER TABLE `astegiudiziarie`.`data` ADD COLUMN `{}` VARCHAR(200) NULL;".format(cl))
-                        columns.append(cl)
-                    cols.append(cl)
-                    values.append('''"{}"'''.format(value.replace("'", "").replace('"', "")))
+                    elif cl == "zip":
+                        cols.append(cl)
+                        values.append(value)
+                    else:
+                        if cl not in columns:
+                            cur.execute("ALTER TABLE `astegiudiziarie`.`data` ADD COLUMN `{}` VARCHAR(200) NULL;".format(cl))
+                            columns.append(cl)
+                        cols.append(cl)
+                        values.append('''"{}"'''.format(value.replace("'", "").replace('"', "")))
 
         cols = ",".join(cols)
         values = ",".join(values)
@@ -363,21 +421,18 @@ def make_report():
     columns = cur.column_names
     pd.DataFrame(cur.fetchall(), columns=columns).to_csv('data.csv', index=False)
     db.close()
+####################################################################################################
+
 
 import tkinter as tk
+
 def run_get_urls():
     get_urls(search_key=e1.get(), select_key=int(e2.get()))
 
 def run_get_data():
     get_data(region.get())
-
-
-
-
-
 master = tk.Tk()
 master.title("SALUNA")
-
 row = 0
 tk.Label(master, 
          text="Text Search").grid(row=row, column=0)
@@ -397,14 +452,9 @@ row = 1
 l1 = tk.Label(master, 
          text="The region is: --")
 l1.grid(row=row, column=0)
-
-
-
 row = 2
 tk.Label(master, 
          text="Region").grid(row=row, column=0)
-
-
 db = mysql.connector.connect(
                 user='root', database='astegiudiziarie',
                 host='localhost', password='Maral1398', port=3306)
@@ -419,9 +469,6 @@ region = tk.StringVar(master)
 region.set("") # default value
 
 w = tk.OptionMenu(master, region, *regions).grid(row=row, column=1)
-# t1 = tk.Entry(master)
-# t1.grid(row=row, column=1)
-
 tk.Button(master, 
           text='GET DATA', 
           command=run_get_data).grid(row=row, 
