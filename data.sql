@@ -44,6 +44,8 @@ CREATE TABLE data (
   Dettaglio_procedura_e_contatti_RUOLO TEXT DEFAULT NULL,
   Dettaglio_procedura_e_contatti_RUOLO_1 int DEFAULT NULL,
   Dettaglio_procedura_e_contatti_RUOLO_2 int DEFAULT NULL,
+  Numero_dei_Creditori_Intervenuti int DEFAULT NULL,
+  Numero_dei_Creditori_Non_Intervenuti int DEFAULT NULL,
   Numero_dei_Creditori int DEFAULT NULL,
   Dettaglio_procedura_e_contatti_DELEGATO_ALLA_VENDITA TEXT DEFAULT NULL,
   Dettaglio_procedura_e_contatti_RECAPITI TEXT DEFAULT NULL,
